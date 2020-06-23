@@ -10,9 +10,8 @@ use pnet::packet::{Packet};
 use pnet::packet::ethernet::{EtherType, EthernetPacket, MutableEthernetPacket};
 use pnet::util::{MacAddr};
 
-//use itertools::Itertools;
-
-use std::io::{BufReader, BufRead};
+use std::io::prelude::*;
+use std::io::{BufReader, BufRead, BufWriter};
 use std::thread;
 
 

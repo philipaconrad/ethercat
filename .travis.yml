@@ -5,8 +5,9 @@ jobs:
     include:
         - rust: stable
           script:
-            - cargo build
             - ifconfig
+            - cargo build
+            - tests/test_nomangle.sh
           # cache ~/.cargo explicitly so that ./target isn't cached
           cache:
               directories:

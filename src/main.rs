@@ -27,7 +27,7 @@ Arguments:
  DEST_MAC   Destination MAC to send/receive packets to/from.
 
 Options:
- -I     Size for receive buffer. [Default: 4096]
+ -I     Size for receive buffer. [Default: 4096] (Not implemented yet.)
  -O     Size for send buffer. [Default: 1500]
  -i     File to read input from. Send buffer automatically flushes
         on EOF, unless the --no-flush-eof option is provided.
@@ -57,7 +57,7 @@ fn parse_int(s: &str) -> Result<u32, String> {
     let strs = s.parse().split(",").collect(Vec<&str>)
 }*/
 
-// This is a mess, but it abstracts over sending a packet with libpnet.
+// This is a mess, but it abstracts over sending a packet with pnet.
 fn packet_send(tx: &mut Box<dyn DataLinkSender + 'static>,
                source: MacAddr,
                dest: MacAddr,
@@ -158,7 +158,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let out_length = out_buffer.len();
             // Flush all full-size packets that we can.
             if out_length >= 1500 {
-                let res = packet_send(&mut tx, source_mac, dest_mac, 0x0806, out_buffer[0..1500].to_vec());
+                let res = packet_send(&mut tx, source_mac, dest_mac, 1500, out_buffer[0..1500].to_vec());
                 if let Err(err) = res {
                     eprintln!("Packet Send Error: {}", err);
                 }
@@ -186,8 +186,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             s.consume(in_length);
         }
         // Send last (usually small) packet.
-        if out_buffer.len() > 0 {
-            let res = packet_send(&mut tx, source_mac, dest_mac, 0x0806, out_buffer[0..].to_vec());
+        let out_length = out_buffer.len() as u16;
+        if out_length > 0 {
+            let res = packet_send(&mut tx, source_mac, dest_mac, out_length, out_buffer[0..].to_vec());
             if let Err(err) = res {
                 eprintln!("Packet Send Error: {}", err);
             }
@@ -196,8 +197,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }).unwrap();
 
     // Receiver thread.
-    /*thread::Builder::new().name("recv -> stdout".to_string()).spawn(move || {
-        let out_writer = BufferedWriter::new(io::stdio::stdout);
+    thread::Builder::new().name("recv -> stdout".to_string()).spawn(move || {
+        let mut out_writer = BufWriter::new(std::io::stdout());
         loop {
             match rx.next() {
                 Ok(packet) => {
@@ -229,7 +230,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
         }
-    });*/
+    });
 
     sender.join();
 

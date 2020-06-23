@@ -11,9 +11,9 @@
 sudo ethercat lo 00:00:00:00:00:00 > received.txt &
 
 # Send ethercat's source code over as test content.
-cat ../src/main.rs | sudo ethercat lo 00:00:00:00:00:00
+cat ${BASH_SOURCE%/*}/../src/main.rs | sudo ethercat lo 00:00:00:00:00:00
 
-cksum ../src/main.rs > original-cksum.txt
+cksum ${BASH_SOURCE%/*}/../src/main.rs > original-cksum.txt
 cksum received.txt > received-cksum.txt
 
 diff original-cksum.txt received-cksum.txt

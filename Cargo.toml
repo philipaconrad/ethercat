@@ -5,12 +5,12 @@ authors = ["Philip Conrad <conrap@chariot-chaser.net>"]
 edition = "2018"
 homepage = "https://github.com/philipaconrad/ethercat"
 repository = "https://github.com/philipaconrad/ethercat"
-license = "BSD-3-Clause"
 license-file = "LICENSE.txt"
 readme = "README.md"
 description = "A networking utility for reading and writing to raw ethernet sockets."
 keywords = ["networking", "ethernet", "sockets", "command-line-utilities"]
 categories = ["command-line-utilities"]
+default-run = "ethercat"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

@@ -6,6 +6,7 @@ jobs:
         - rust: stable
           script:
             - cargo build
+            - ifconfig
           # cache ~/.cargo explicitly so that ./target isn't cached
           cache:
               directories:

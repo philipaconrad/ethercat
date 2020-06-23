@@ -1,0 +1,12 @@
+language: rust
+
+jobs:
+    fast_finish: true
+    include:
+        - rust: stable
+          script:
+            - cargo build
+          # cache ~/.cargo explicitly so that ./target isn't cached
+          cache:
+              directories:
+                  - $HOME/.cargo

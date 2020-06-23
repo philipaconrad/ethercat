@@ -30,7 +30,15 @@ Options:
  -I     Size for receive buffer. [Default: 4096] (Not implemented yet.)
  -O     Size for send buffer. [Default: 1500]
  -i     File to read input from. Send buffer automatically flushes
-        on EOF, unless the --no-flush-eof option is provided.
+        on EOF.
+ -l     *Listen Mode*: Program does not terminate on exhausting STDIN, and
+        will listen for packets indefinitely.
+ -s     *Server Mode*: Binds STDIN and STDOUT of a program, turning it into an
+        ethernet socket server on the host interface.
+        - Read inbound messages from STDIN.
+        - Write outbound messages to STDOUT.
+          Output messages are delimited by line breaks. ('\\n')
+
 
 Future:
  - Option to spoof sender MAC?
@@ -46,6 +54,7 @@ struct Args {
     opt_number: Option<u32>,
     recv_mtu: u32,
     send_mtu: u32,
+    listen_mode: bool,
     free: Vec<String>,
 }
 
@@ -94,6 +103,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         opt_number: args.opt_value_from_str("--opt-number")?,
         //in_files: args.opt_value_from_str("-i", parse_filenames)?.unwrap_or(),
         
+        listen_mode: args.contains("-l"),
         // Parses an optional value using a specified function.
         recv_mtu: args.opt_value_from_str(["-I", "--recv-mtu"])?.unwrap_or(4096),
         send_mtu: args.opt_value_from_str(["-O", "--send-mtu"])?.unwrap_or(1500),
@@ -102,7 +112,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         free: args.free()?,
     };
 
-    for arg in &args.free { eprintln!("Arg: {}", arg) }
+    //for arg in &args.free { eprintln!("Arg: {}", arg) }
 
     // Print help message and bail.
     // It should be okay to use process::exit() here, as no file descriptors
@@ -197,7 +207,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }).unwrap();
 
     // Receiver thread.
-    thread::Builder::new().name("recv -> stdout".to_string()).spawn(move || {
+    let receiver = thread::Builder::new().name("recv -> stdout".to_string()).spawn(move || {
         let mut out_writer = BufWriter::new(std::io::stdout());
         loop {
             match rx.next() {
@@ -220,9 +230,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             new_packet.set_source(packet.get_destination());
                             new_packet.set_destination(packet.get_source());
                     });*/
-
-                    out_writer.write(packet.payload());
-                    out_writer.flush();
+                    if packet.get_destination() == dest_mac {
+                        out_writer.write(packet.payload());
+                        out_writer.flush();
+                    }
                 },
                 Err(e) => {
                     // If an error occurs, we can handle it here.
@@ -230,9 +241,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
         }
-    });
+    }).unwrap();
 
     sender.join();
+    if args.listen_mode { receiver.join(); };
 
     Ok(())
 }

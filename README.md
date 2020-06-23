@@ -1,6 +1,8 @@
 EtherCat
 --------
 
+[![Build Status](https://travis-ci.org/philipaconrad/ethercat.svg?branch=master)](https://travis-ci.org/philipaconrad/ethercat)
+
 EtherCat is a networking utility in the style of `netcat` for reading and writing to raw ethernet sockets on Linux.
 
 # Build

@@ -7,7 +7,7 @@ jobs:
           script:
             - ifconfig
             - cargo build
-            - tests/test_nomangle.sh
+            - tests/test-nomangle.sh
           # cache ~/.cargo explicitly so that ./target isn't cached
           cache:
               directories:

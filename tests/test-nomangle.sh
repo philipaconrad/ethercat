@@ -1,4 +1,5 @@
 #!/bin/bash
+set -eu
 
 # A simple end-to-end test of EtherCat.
 
@@ -17,7 +18,7 @@ cat ${BASH_SOURCE%/*}/../src/main.rs | sudo $ETHERCAT lo 00:00:00:00:00:00 > /de
 
 sleep 0.25
 
-cksum ${BASH_SOURCE%/*}/../src/main.rs > ${BASH_SOURCE%/*}/original-cksum.txt
-cksum ${BASH_SOURCE%/*}/received.txt > ${BASH_SOURCE%/*}/received-cksum.txt
+md5sum ${BASH_SOURCE%/*}/../src/main.rs | cut -f1 -d' ' > ${BASH_SOURCE%/*}/original-cksum.txt
+md5sum ${BASH_SOURCE%/*}/received.txt | cut -f1 -d' ' > ${BASH_SOURCE%/*}/received-cksum.txt
 
 diff ${BASH_SOURCE%/*}/original-cksum.txt ${BASH_SOURCE%/*}/received-cksum.txt

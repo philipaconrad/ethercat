@@ -21,3 +21,7 @@ version = "0.26.0"
 
 [dependencies.pico-args]
 version = "0.3.2"
+
+[[bin]]
+name = "ethercat"
+path = "src/main.rs"

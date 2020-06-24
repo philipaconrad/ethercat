@@ -10,15 +10,22 @@ set -eu
 
 ETHERCAT=${BASH_SOURCE%/*}/../target/debug/ethercat
 
+# Find the default ethernet interface.
+ETHER_INTERFACE=$(ifconfig | grep -o 'en.*:' | sed 's/.$//')
+
+# The file is not truncated for some reason, so we have to manually kill it off.
+rm -f ${BASH_SOURCE%/*}/received.txt
+
 # Start receiving ethercat instance.
-sudo $ETHERCAT -l lo 00:00:00:00:00:00 > ${BASH_SOURCE%/*}/received.txt &
+sudo $ETHERCAT -l $ETHER_INTERFACE 00:00:00:00:00:00 > ${BASH_SOURCE%/*}/received.txt &
 
 # Send ethercat's source code over as test content.
-cat ${BASH_SOURCE%/*}/../src/main.rs | sudo $ETHERCAT lo 00:00:00:00:00:00 > /dev/null
+cat ${BASH_SOURCE%/*}/../src/main.rs | sudo $ETHERCAT $ETHER_INTERFACE 00:00:00:00:00:00 > /dev/null
 
-sleep 0.25
+kill %%
 
 md5sum ${BASH_SOURCE%/*}/../src/main.rs | cut -f1 -d' ' > ${BASH_SOURCE%/*}/original-cksum.txt
 md5sum ${BASH_SOURCE%/*}/received.txt | cut -f1 -d' ' > ${BASH_SOURCE%/*}/received-cksum.txt
 
+#echo $(diff ${BASH_SOURCE%/*}/original-cksum.txt ${BASH_SOURCE%/*}/received-cksum.txt)
 diff ${BASH_SOURCE%/*}/original-cksum.txt ${BASH_SOURCE%/*}/received-cksum.txt

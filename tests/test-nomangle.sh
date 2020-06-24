@@ -20,7 +20,7 @@ rm -f ${BASH_SOURCE%/*}/received.txt
 sudo $ETHERCAT -l $ETHER_INTERFACE 00:00:00:00:00:00 > ${BASH_SOURCE%/*}/received.txt &
 
 # Send ethercat's source code over as test content.
-cat ${BASH_SOURCE%/*}/../src/main.rs | sudo $ETHERCAT $ETHER_INTERFACE 00:00:00:00:00:00 > /dev/null
+cat ${BASH_SOURCE%/*}/../src/main.rs | sudo $ETHERCAT -O 500 $ETHER_INTERFACE 00:00:00:00:00:00 > /dev/null
 
 kill %%
 

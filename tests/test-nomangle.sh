@@ -17,8 +17,14 @@ rm -f ${BASH_SOURCE%/*}/received.txt
 # Start the receiving ethercat instance.
 sudo $ETHERCAT -l $ETHER_INTERFACE 00:00:00:00:00:00 > ${BASH_SOURCE%/*}/received.txt &
 
+# Give reciever time to start up and bind socket.
+sleep 0.5s
+
 # Send ethercat's source code over to it as test material.
 cat ${BASH_SOURCE%/*}/../src/main.rs | sudo $ETHERCAT -O 500 $ETHER_INTERFACE 00:00:00:00:00:00 > /dev/null
+
+# Small delay to give receiver time to receive all packets.
+sleep 0.5s
 
 # Ensure background job dies and flushes writes to disk.
 kill %%

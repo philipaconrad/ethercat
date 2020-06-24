@@ -6,10 +6,11 @@
 extern crate pnet;
 use pnet::datalink::{self, NetworkInterface, DataLinkSender};
 use pnet::datalink::Channel::Ethernet;
-use pnet::packet::{Packet};
+use pnet::packet::Packet;
 use pnet::packet::ethernet::{EtherType, EthernetPacket, MutableEthernetPacket};
-use pnet::util::{MacAddr};
+use pnet::util::MacAddr;
 
+mod input;
 use std::io::prelude::*;
 use std::io::{BufReader, BufRead, BufWriter};
 use std::thread;
@@ -65,21 +66,13 @@ struct Args {
     help: bool,
     version: bool,
     number: u32,
-    //in_files: Vec<String>,
+    input_file: Option<String>,
     opt_number: Option<u32>,
     recv_mtu: u16,
     send_mtu: u16,
     listen_mode: bool,
     free: Vec<String>,
 }
-
-fn parse_int(s: &str) -> Result<u32, String> {
-    s.parse().map_err(|_| "not a number".to_string())
-}
-
-/*fn parse_filenames(s: &str) -> Result<Vec<String>, String> {
-    let strs = s.parse().split(",").collect(Vec<&str>)
-}*/
 
 // This is a mess, but it abstracts over sending a packet with pnet.
 fn packet_send(tx: &mut (dyn DataLinkSender + 'static),
@@ -112,6 +105,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         help: args.contains(["-h", "--help"]),
         // or just a string for a single one.
         version: args.contains("-V"),
+        input_file: args.opt_value_from_str("-i")?,
         // Parses an optional value that implements `FromStr`.
         number: args.opt_value_from_str("--number")?.unwrap_or(5),
         // Parses an optional value that implements `FromStr`.
@@ -149,6 +143,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let source_if = String::from(args.free.get(0).unwrap());
     let dest_mac: MacAddr = (args.free.get(1).unwrap()).parse::<MacAddr>()?;
     let send_mtu = args.send_mtu;
+    // We have to engage in some shenanigans to abstract over STDIN or a File.
+    let input_reader: BufReader<input::Input> =
+        BufReader::new(match args.input_file {
+            Some(filename) => input::Input::file(filename)?,
+            None => input::Input::stdin(),
+        });
 
     // Filter network interfaces to find our link.
     let interface_names_match =
@@ -182,7 +182,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let sender = thread::Builder::new().name("stdin -> send".to_string()).spawn(move || {
         let mtu = send_mtu;
         let mtu_size: usize = mtu.into();
-        let mut s = BufReader::with_capacity(8 * 1024, std::io::stdin());
+        let mut s = input_reader;
         let mut out_buffer = Vec::with_capacity(mtu_size);
 
         // Continuously receive input from stdin, until EOF is hit.
@@ -238,8 +238,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             match rx.next() {
                 Ok(packet) => {
                     let packet = EthernetPacket::new(packet).unwrap();
-                    out_writer.write(packet.payload());
-                    out_writer.flush();
+                    let _ = out_writer.write(packet.payload());
+                    let _ = out_writer.flush();
                 },
                 Err(e) => {
                     // If an error occurs, we can handle it here.
@@ -249,8 +249,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }).unwrap();
 
-    sender.join();
-    if args.listen_mode { receiver.join(); };
+    let _ = sender.join();
+    if args.listen_mode { let _ = receiver.join(); };
 
     Ok(())
 }

@@ -11,7 +11,7 @@ set -eu
 ETHERCAT=${BASH_SOURCE%/*}/../target/debug/ethercat
 
 # Find the default ethernet interface.
-ETHER_INTERFACE=$(ifconfig | grep -o 'en.*:' | sed 's/.$//')
+ETHER_INTERFACE=$(ifconfig -s | grep -o 'en.*' | cut -f1 -d' ')
 
 # The file is not truncated for some reason, so we have to manually kill it off.
 rm -f ${BASH_SOURCE%/*}/received.txt

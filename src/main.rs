@@ -14,8 +14,22 @@ use std::io::prelude::*;
 use std::io::{BufReader, BufRead, BufWriter};
 use std::thread;
 
+// Thanks to the Clap devs for this macro.
+// Cite: https://kbknapp.github.io/clap-rs/clap/macro.crate_version!.html
+macro_rules! crate_version {
+    () => {
+        format!("{}.{}.{}{}",
+            env!("CARGO_PKG_VERSION_MAJOR"),
+            env!("CARGO_PKG_VERSION_MINOR"),
+            env!("CARGO_PKG_VERSION_PATCH"),
+            option_env!("CARGO_PKG_VERSION_PRE").unwrap_or(""))
+    }
+}
 
-const HELP_TEXT: &str = "EtherCat 1.0
+// This is a function because we can't use a const string as a format string.
+// rustc wants string literals *only* for std::format.
+fn gen_help_text(version: String) -> String {
+    format!("EtherCat {}
 Copyright (c) Philip Conrad <conradp@chariot-chaser.net>, 2020.
 All rights reserved. Released under the BSD-3 license.
 
@@ -44,7 +58,8 @@ Future:
  - Option to spoof sender MAC?
  - Option to spoof packet checksums?
  - Option(s) to allow VLAN tagging, and other tag stuff?
-";
+", version)
+}
 
 struct Args {
     help: bool,
@@ -73,9 +88,9 @@ fn packet_send(tx: &mut Box<dyn DataLinkSender + 'static>,
                ether_type: u16,
                payload: Vec<u8>) -> Result<(), std::io::Error> {
     let ether_struct = pnet::packet::ethernet::Ethernet {
-        source: source,
+        source,
         destination: dest,
-        payload: payload,
+        payload,
         ethertype: EtherType::new(ether_type),
     };
 
@@ -118,13 +133,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // It should be okay to use process::exit() here, as no file descriptors
     // or other system resources are being used yet.
     if args.help {
-        eprintln!("{}", HELP_TEXT);
+        eprintln!("{}", gen_help_text(crate_version!()));
+        std::process::exit(0)
+    } else if args.version {
+        eprintln!("EtherCat version {}", crate_version!());
         std::process::exit(0)
     }
 
     // Ensure we have arguments available for our source/dest.
     if args.free.len() < 2 {
-        println!("{}", "Error: Need both SOURCE_IF and DEST_MAC arguments.");
+        println!("Error: Need both SOURCE_IF and DEST_MAC arguments.");
         std::process::exit(1)
     }
 
@@ -139,8 +157,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Find the network interface with the provided name
     let interfaces = datalink::interfaces();
     let interface = interfaces.into_iter()
-                              .filter(interface_names_match)
-                              .next()
+                              .find(interface_names_match)
                               .unwrap();
 
     // Bail if we can't find a MAC address for the network interface.
@@ -185,7 +202,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let in_buffer = s.fill_buf().unwrap();
             let in_length = in_buffer.len();
             if in_length > 0 {
-                for i in 0..in_length { out_buffer.push(in_buffer[i]) }
+                for item in in_buffer.iter().take(in_length) {
+                    out_buffer.push(*item)
+                }
             }
             // If we've cleared out all the full-size packets, check to see if
             // we have exhausted the BufReader.
@@ -219,27 +238,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             match rx.next() {
                 Ok(packet) => {
                     let packet = EthernetPacket::new(packet).unwrap();
-                    // Constructs a single packet, the same length as the the one received,
-                    // using the provided closure. This allows the packet to be constructed
-                    // directly in the write buffer, without copying. If copying is not a
-                    // problem, you could also use send_to.
-                    //
-                    // The packet is sent once the closure has finished executing.
-                    /*tx.build_and_send(1, packet.packet().len(),
-                        &mut |mut new_packet| {
-                            let mut new_packet = MutableEthernetPacket::new(new_packet).unwrap();
-
-                            // Create a clone of the original packet.
-                            new_packet.clone_from(&packet);
-
-                            // Switch the source and destination.
-                            new_packet.set_source(packet.get_destination());
-                            new_packet.set_destination(packet.get_source());
-                    });*/
-                    if packet.get_destination() == dest_mac {
-                        out_writer.write(packet.payload());
-                        out_writer.flush();
-                    }
+                    out_writer.write(packet.payload());
+                    out_writer.flush();
                 },
                 Err(e) => {
                     // If an error occurs, we can handle it here.

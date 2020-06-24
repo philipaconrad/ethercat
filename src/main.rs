@@ -82,7 +82,7 @@ fn parse_int(s: &str) -> Result<u32, String> {
 }*/
 
 // This is a mess, but it abstracts over sending a packet with pnet.
-fn packet_send(tx: &mut Box<dyn DataLinkSender + 'static>,
+fn packet_send(tx: &mut (dyn DataLinkSender + 'static),
                source: MacAddr,
                dest: MacAddr,
                ether_type: u16,
@@ -191,7 +191,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let out_length = out_buffer.len();
             // Flush all full-size packets that we can.
             if out_length >= mtu_size {
-                let res = packet_send(&mut tx, source_mac, dest_mac, mtu, out_buffer[0..mtu_size].to_vec());
+                let res = packet_send(&mut *tx, source_mac, dest_mac, mtu, out_buffer[0..mtu_size].to_vec());
                 if let Err(err) = res {
                     eprintln!("Packet Send Error: {}", err);
                 }
@@ -223,7 +223,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Send last (usually small) packet.
         let out_length = out_buffer.len() as u16;
         if out_length > 0 {
-            let res = packet_send(&mut tx, source_mac, dest_mac, out_length, out_buffer[0..].to_vec());
+            let res = packet_send(&mut *tx, source_mac, dest_mac, out_length, out_buffer[0..].to_vec());
             if let Err(err) = res {
                 eprintln!("Packet Send Error: {}", err);
             }

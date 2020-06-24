@@ -52,8 +52,8 @@ struct Args {
     number: u32,
     //in_files: Vec<String>,
     opt_number: Option<u32>,
-    recv_mtu: u32,
-    send_mtu: u32,
+    recv_mtu: u16,
+    send_mtu: u16,
     listen_mode: bool,
     free: Vec<String>,
 }
@@ -130,6 +130,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let source_if = String::from(args.free.get(0).unwrap());
     let dest_mac: MacAddr = (args.free.get(1).unwrap()).parse::<MacAddr>()?;
+    let send_mtu = args.send_mtu;
 
     // Filter network interfaces to find our link.
     let interface_names_match =
@@ -155,24 +156,29 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Err(e) => panic!("An error occurred when creating the datalink channel: {}", e)
     };
 
+    // If we're in server mode, start up the process we were given, and bind
+    // to its stdin/stdout.
+
+
 
     // Sender thread.
-    // TODO: Replace `1500` constants with the send_mtu variable.
     let sender = thread::Builder::new().name("stdin -> send".to_string()).spawn(move || {
+        let mtu = send_mtu;
+        let mtu_size: usize = mtu.into();
         let mut s = BufReader::with_capacity(8 * 1024, std::io::stdin());
-        let mut out_buffer = Vec::with_capacity(1500);
+        let mut out_buffer = Vec::with_capacity(mtu_size);
 
         // Continuously receive input from stdin, until EOF is hit.
         // Whenever we have full MTU's-worth of data, we flush it.
         loop {
             let out_length = out_buffer.len();
             // Flush all full-size packets that we can.
-            if out_length >= 1500 {
-                let res = packet_send(&mut tx, source_mac, dest_mac, 1500, out_buffer[0..1500].to_vec());
+            if out_length >= mtu_size {
+                let res = packet_send(&mut tx, source_mac, dest_mac, mtu, out_buffer[0..mtu_size].to_vec());
                 if let Err(err) = res {
                     eprintln!("Packet Send Error: {}", err);
                 }
-                out_buffer = out_buffer[1500..].to_vec();
+                out_buffer = out_buffer[mtu_size..].to_vec();
                 continue;
             };
             // Read next batch from BufReader.
@@ -183,7 +189,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
             // If we've cleared out all the full-size packets, check to see if
             // we have exhausted the BufReader.
-            if out_length <= 1500 {
+            if out_length <= mtu_size {
                 if in_length == 0 { break; }
                 // Hack to ensure correct stopping for early EOFs.
                 // The hack is required because the underlying reader is line-

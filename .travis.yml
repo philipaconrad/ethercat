@@ -8,7 +8,7 @@ jobs:
           script:
             - ifconfig
             - cargo build
-            - tests/test-nomangle.sh
+            - sudo tests/test-nomangle.sh
           before_cache:
             - cargo install cargo-sweep
             - cargo sweep -i

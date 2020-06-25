@@ -30,6 +30,8 @@ sleep 0.5s
 # Ensure background job dies and flushes writes to disk.
 kill %%
 
+sleep 0.5s
+
 # Generate MD5 hashes for the two files.
 md5sum ${BASH_SOURCE%/*}/../src/main.rs | cut -f1 -d' ' > ${BASH_SOURCE%/*}/original-cksum.txt
 md5sum ${BASH_SOURCE%/*}/received.txt | cut -f1 -d' ' > ${BASH_SOURCE%/*}/received-cksum.txt

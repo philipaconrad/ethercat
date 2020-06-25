@@ -9,6 +9,7 @@ ETHERCAT=${BASH_SOURCE%/*}/../target/debug/ethercat
 # Note: this command can fail if the ethernet interface name is over 8
 #   characters long, because the default ifconfig on Ubuntu truncates names.
 ETHER_INTERFACE=$(ifconfig -a | grep -Eo "^en[a-zA-Z0-9]*")
+echo "Test will use interface: ${ETHER_INTERFACE}"
 
 # The file is not truncated for some reason, so we have to manually remove it,
 # or else it will grow if the test is run locally more than once.
@@ -34,4 +35,5 @@ md5sum ${BASH_SOURCE%/*}/../src/main.rs | cut -f1 -d' ' > ${BASH_SOURCE%/*}/orig
 md5sum ${BASH_SOURCE%/*}/received.txt | cut -f1 -d' ' > ${BASH_SOURCE%/*}/received-cksum.txt
 
 # Compare the two hashes. Matching hashes mean nothing got mangled in-transit.
+ls -athor ${BASH_SOURCE%/*}
 diff ${BASH_SOURCE%/*}/original-cksum.txt ${BASH_SOURCE%/*}/received-cksum.txt

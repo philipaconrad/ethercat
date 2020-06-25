@@ -1,5 +1,4 @@
 language: rust
-sudo: required
 
 jobs:
     fast_finish: true
@@ -10,6 +9,7 @@ jobs:
             - cargo build
             - sudo tests/test-nomangle.sh
           before_cache:
+            - rm -rf "$TRAVIS_HOME/.cargo/registry/src"
             - cargo install cargo-sweep
             - cargo sweep -i
           cache: cargo

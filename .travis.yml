@@ -7,6 +7,7 @@ jobs:
         - rust: stable
           script:
             - ifconfig
+            - ps -ef
             - cargo build
             - sudo tests/test-nomangle.sh
           before_cache:

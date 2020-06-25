@@ -1,4 +1,5 @@
 language: rust
+sudo: required
 
 jobs:
     fast_finish: true
@@ -8,7 +9,7 @@ jobs:
             - ifconfig
             - cargo build
             - tests/test-nomangle.sh
-          # cache ~/.cargo explicitly so that ./target isn't cached
-          cache:
-              directories:
-                  - $HOME/.cargo
+          before_cache:
+            - cargo install cargo-sweep
+            - cargo sweep -i
+          cache: cargo

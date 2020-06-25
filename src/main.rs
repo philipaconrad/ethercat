@@ -238,8 +238,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             match rx.next() {
                 Ok(packet) => {
                     let packet = EthernetPacket::new(packet).unwrap();
-                    let _ = out_writer.write(packet.payload());
-                    let _ = out_writer.flush();
+                    if packet.get_destination() == dest_mac {
+                        let _ = out_writer.write(packet.payload());
+                        let _ = out_writer.flush();
+                    }
                 },
                 Err(e) => {
                     // If an error occurs, we can handle it here.

@@ -8,7 +8,7 @@ ETHERCAT=${BASH_SOURCE%/*}/../target/debug/ethercat
 # Find the default ethernet interface.
 # Note: this command can fail if the ethernet interface name is over 8
 #   characters long, because the default ifconfig on Ubuntu truncates names.
-ETHER_INTERFACE=$(ifconfig -s | grep -o 'en.*' | cut -f1 -d' ')
+ETHER_INTERFACE=$(ifconfig -a | grep -Eo "^en[a-zA-Z0-9]*")
 
 # The file is not truncated for some reason, so we have to manually remove it,
 # or else it will grow if the test is run locally more than once.
